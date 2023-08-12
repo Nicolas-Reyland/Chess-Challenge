@@ -7,7 +7,83 @@ using System.Linq;
 public class MyBot : IChessBot
 {
     // Piece values: null, pawn, knight, bishop, rook, queen, king
-    readonly int[] pieceValues = { 0, 10, 30, 30, 50, 90, 1000 };
+    readonly int[] pieceValues = { 0, 100, 300, 350, 500, 900, 1 };
+    readonly Dictionary<PieceType, int[,]> piecePositions = new()
+    {
+        {
+            PieceType.Pawn, new int[8,8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+            }
+        },
+        {
+            PieceType.Knight, new int[8,8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+            }
+        },
+        {
+            PieceType.Bishop, new int[8,8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+            }
+        },
+        {
+            PieceType.Rook, new int[8,8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+            }
+        },
+        {
+            PieceType.Queen, new int[8,8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+            }
+        },
+        {
+            PieceType.King, new int[8,8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { 0, 0, 0, 0, 0, 0, 0, 0 },
+            }
+        },
+    };
+
     int searchDepth = 6;
     Move moveToPlay;
 
@@ -31,12 +107,24 @@ public class MyBot : IChessBot
         if (board.IsDraw() || board.IsInStalemate())
             return 0;
         if (board.IsInCheckmate())
-            return board.IsWhiteToMove ? int.MaxValue : int.MinValue;
+            return board.IsWhiteToMove ? int.MinValue : int.MaxValue;
 
         int boardValue = 0;
         PieceList[] allPieces = board.GetAllPieceLists();
-        foreach (PieceList pieces in allPieces){
+        foreach (PieceList pieces in allPieces) {
             int value = pieces.Count * pieceValues[(int)pieces.TypeOfPieceInList];
+            int[,] piecePositionValues = piecePositions[pieces.TypeOfPieceInList];
+            foreach (Piece piece in pieces)
+            {
+                int pieceY = piece.Square.Index / 8;
+                int pieceX = piece.Square.Index % 8;
+                int piecePositionValue = piecePositionValues[pieceY, pieceX];
+                /*
+                if (piecePositionValue != 0)
+                    Console.WriteLine("Pawn position bonus/malus: {0}", piecePositionValue);
+                */
+                value += piecePositionValue;
+            }
             boardValue += board.IsWhiteToMove == pieces.IsWhitePieceList ? value : -value;
         }
         return boardValue;
