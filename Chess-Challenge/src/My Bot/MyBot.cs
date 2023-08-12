@@ -20,16 +20,24 @@ public class MyBot : IChessBot
     }
 
     private int chooseSearchDepth(Board board) {
-        return 6;
+        int nbPieces = 0;
+        foreach (PieceList pieces in board.GetAllPieceLists())
+            nbPieces += pieces.Count;
+        return nbPieces > 20 ? 4 : 6;
     }
 
     private int Evaluate(Board board)
     {
+        if (board.IsDraw() || board.IsInStalemate())
+            return 0;
+        if (board.IsInCheckmate())
+            return board.IsWhiteToMove ? int.MaxValue : int.MinValue;
+
         int boardValue = 0;
         PieceList[] allPieces = board.GetAllPieceLists();
-        foreach (PieceList Pieces in allPieces){
-            int value = Pieces.Count * pieceValues[(int)Pieces.TypeOfPieceInList];
-            boardValue += board.IsWhiteToMove == Pieces.IsWhitePieceList ? value : -value;
+        foreach (PieceList pieces in allPieces){
+            int value = pieces.Count * pieceValues[(int)pieces.TypeOfPieceInList];
+            boardValue += board.IsWhiteToMove == pieces.IsWhitePieceList ? value : -value;
         }
         return boardValue;
     }
@@ -47,7 +55,7 @@ public class MyBot : IChessBot
         }
 
         Move[] moves = board.GetLegalMoves();
-        for (int i=0; i<moves.Length; i++) {
+        for (int i = 0; i < moves.Length; ++i) {
             board.MakeMove(moves[i]);
             int score = -Search(board, -beta, -alpha, depth - 1);
             board.UndoMove(moves[i]);
