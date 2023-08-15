@@ -50,5 +50,10 @@ namespace ChessChallenge.Example
             board.UndoMove(move);
             return isMate;
         }
+
+        public int Evaluate(Board board)
+        {
+            return -2;
+        }
     }
 }

@@ -246,7 +246,7 @@ namespace ChessChallenge.Application
             DrawPiece(board.Square[moveToAnimate.StartSquareIndex], animPos);
         }
 
-        public void DrawPlayerNames(string nameWhite, string nameBlack, int timeWhite, int timeBlack, bool isPlaying)
+        public void DrawPlayerNames(string nameWhite, string nameBlack, int timeWhite, int timeBlack, bool isPlaying, API.IChessBot? whiteBot, API.IChessBot? blackBot)
         {
             string nameBottom = whitePerspective ? nameWhite : nameBlack;
             string nameTop = !whitePerspective ? nameWhite : nameBlack;
@@ -257,6 +257,12 @@ namespace ChessChallenge.Application
 
             string colNameBottom = whitePerspective ? "White" : "Black";
             string colNameTop = !whitePerspective ? "White" : "Black";
+
+            API.Board apiBoard = new(board);
+            int whiteEval = whiteBot != null ? whiteBot.Evaluate(apiBoard) : -1;
+            int blackEval = blackBot != null ? blackBot.Evaluate(apiBoard) : -1;
+            int evalBottom = whitePerspective ? whiteEval : blackEval;
+            int evalTop = !whitePerspective ? whiteEval : blackEval;
 
             int boardStartX = -squareSize * 4;
             int boardStartY = -squareSize * 4;
@@ -272,16 +278,25 @@ namespace ChessChallenge.Application
 
             //Color textColTop = topTurnToMove ? activeTextCol : inactiveTextCol;
 
-            Draw(boardStartY + squareSize * 8 + spaceY, colNameBottom, nameBottom, timeBottom, bottomTextCol);
-            Draw(boardStartY - spaceY, colNameTop, nameTop, timeTop, topTextCol);
+            Draw(boardStartY + squareSize * 8 + spaceY, colNameBottom, nameBottom, timeBottom, bottomTextCol, evalBottom);
+            Draw(boardStartY - spaceY, colNameTop, nameTop, timeTop, topTextCol, evalTop);
 
-            void Draw(float y, string colName, string name, int timeMs, Color textCol)
+            void Draw(float y, string colName, string name, int timeMs, Color textCol, int evalValue)
             {
                 const int fontSize = 36;
                 const int fontSpacing = 1;
                 var namePos = new Vector2(boardStartX, y);
 
                 UIHelper.DrawText($"{colName}: {name}", namePos, fontSize, fontSpacing, nameCol);
+
+                if (name == "MyBot")
+                {
+                    var evalPos = new Vector2(boardStartX + squareSize * 4, y);
+                  
+                    string evalText = $"Eval: {evalValue}";
+                    UIHelper.DrawText(evalText, evalPos, fontSize, fontSpacing, textCol, UIHelper.AlignH.Centre);
+                }
+
                 var timePos = new Vector2(boardStartX + squareSize * 8, y);
                 string timeText;
                 if (timeMs == int.MaxValue)

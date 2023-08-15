@@ -7,7 +7,7 @@ using System.Linq;
 public class MyBot : IChessBot
 {
     // Piece values: null, pawn, knight, bishop, rook, queen, king
-    readonly int[] pieceValues = { 0, 100, 300, 350, 500, 900, 1 };
+    readonly int[] pieceValues = { 0, 100, 300, 350, 500, 900, 0 };
     readonly Dictionary<PieceType, int[,]> piecePositions = new()
     {
         {
@@ -55,7 +55,7 @@ public class MyBot : IChessBot
                 { 0, 0, 0, 0, 0, 0, 0, 0 },
                 { 0, 0, 0, 0, 0, 0, 0, 0 },
                 { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { -20, 0, 30, 0, 0, 30, 0, -20 },
             }
         },
         {
@@ -72,23 +72,28 @@ public class MyBot : IChessBot
         },
         {
             PieceType.King, new int[8,8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { -50, -50, -50, -50, -50, -50, -50, -50, },
+                { -40, -40, -40, -40, -40, -40, -40, -40, },
+                { -30, -30, -30, -30, -30, -30, -30, -30, },
+                { -20, -20, -20, -20, -20, -20, -20, -20, },    
+                { -10, -10, -10, -10, -10, -10, -10, -10, },
+                { -10, -10, -10, -10, -10, -10, -10, -10, },
+                { -10, -10, -10, -10, -10, -10, -10, -10, },
                 { 0, 0, 0, 0, 0, 0, 0, 0 },
             }
         },
     };
 
     int searchDepth = 6;
+    bool isWhite = true;
+    bool isBlack = false;
     Move moveToPlay;
 
     public Move Think(Board board, Timer timer)
     {
+        isBlack = board.IsWhiteToMove;
+        isWhite = !isBlack;
+
         searchDepth = chooseSearchDepth(board);
         moveToPlay = Move.NullMove;
         int score = Search(board, -int.MaxValue, int.MaxValue, searchDepth);
@@ -96,13 +101,24 @@ public class MyBot : IChessBot
     }
 
     private int chooseSearchDepth(Board board) {
+        int nbPieces = nbPiecesOnBoard(board);
+        if (nbPieces > 20)
+            return 4;
+        if (nbPieces > 10)
+            return 5;
+        else
+            return 6;
+    }
+
+    private int nbPiecesOnBoard(Board board)
+    {
         int nbPieces = 0;
         foreach (PieceList pieces in board.GetAllPieceLists())
             nbPieces += pieces.Count;
-        return nbPieces > 20 ? 4 : 6;
+        return nbPieces;
     }
 
-    private int Evaluate(Board board)
+    public int Evaluate(Board board)
     {
         if (board.IsDraw() || board.IsInStalemate())
             return 0;
@@ -116,18 +132,36 @@ public class MyBot : IChessBot
             int[,] piecePositionValues = piecePositions[pieces.TypeOfPieceInList];
             foreach (Piece piece in pieces)
             {
-                int pieceY = piece.Square.Index / 8;
-                int pieceX = piece.Square.Index % 8;
-                int piecePositionValue = piecePositionValues[pieceY, pieceX];
-                /*
-                if (piecePositionValue != 0)
-                    Console.WriteLine("Pawn position bonus/malus: {0}", piecePositionValue);
-                */
-                value += piecePositionValue;
+                int positionValue = piecePositionValue(piece);
+                if (positionValue != 0)
+                    Console.WriteLine("Pawn position bonus/malus: {0}", positionValue);
+                value += positionValue;
             }
             boardValue += board.IsWhiteToMove == pieces.IsWhitePieceList ? value : -value;
         }
         return boardValue;
+    }
+
+    private int piecePositionValue(Piece piece)
+    {
+        int[,] values = piecePositions[piece.PieceType];
+        int pieceY = 7 - piece.Square.Index / 8;
+        int pieceX = piece.Square.Index % 8;
+        if (!piece.IsWhite)
+        {
+            pieceY = 7 - pieceY;
+            pieceX = 7 - pieceX;
+        }
+        if (values[pieceY, pieceX] != 0)
+        {
+            Console.WriteLine("Position Bonus: {0}", values[pieceY, pieceX]);
+        }
+        return values[pieceY, pieceX];
+    }
+
+    private int evalMove(Move move)
+    {
+        return 0;
     }
 
     int Search (Board board, int alpha, int beta, int depth){
@@ -146,6 +180,7 @@ public class MyBot : IChessBot
         for (int i = 0; i < moves.Length; ++i) {
             board.MakeMove(moves[i]);
             int score = -Search(board, -beta, -alpha, depth - 1);
+            score += evalMove(moves[i]);
             board.UndoMove(moves[i]);
             if (score > bestScore) {
                 bestScore = score;

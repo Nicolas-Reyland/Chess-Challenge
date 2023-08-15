@@ -28,7 +28,7 @@ namespace ChessChallenge.Application
         bool isPlaying;
         Board board;
         public ChessPlayer PlayerWhite { get; private set; }
-        public ChessPlayer PlayerBlack {get;private set;}
+        public ChessPlayer PlayerBlack { get; private set; }
 
         float lastMoveMadeTime;
         bool isWaitingToPlayMove;
@@ -384,7 +384,7 @@ namespace ChessChallenge.Application
             boardUI.Draw();
             string nameW = GetPlayerName(PlayerWhite);
             string nameB = GetPlayerName(PlayerBlack);
-            boardUI.DrawPlayerNames(nameW, nameB, PlayerWhite.TimeRemainingMs, PlayerBlack.TimeRemainingMs, isPlaying);
+            boardUI.DrawPlayerNames(nameW, nameB, PlayerWhite.TimeRemainingMs, PlayerBlack.TimeRemainingMs, isPlaying, PlayerWhite.Bot, PlayerBlack.Bot);
         }
 
         public void DrawOverlay()
