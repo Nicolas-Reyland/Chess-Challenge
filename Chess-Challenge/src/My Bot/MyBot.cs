@@ -1,14 +1,18 @@
+#define PIECE_POSITION_VALUES
+
 using ChessChallenge.API;
 using System;
-using System.Numerics;
+#if PIECE_POSITION_VALUES
 using System.Collections.Generic;
+#endif
 using System.Linq;
 using System.Collections.Concurrent;
 
 public class MyBot : IChessBot
 {
     // Piece values: null, pawn, knight, bishop, rook, queen, king
-    readonly int[] pieceValues = { 0, 100, 300, 350, 500, 900, 0 };
+    readonly int[] pieceValues = { 0, 100, 320, 330, 500, 900, 20000 };
+#if PIECE_POSITION_VALUES
     readonly Dictionary<PieceType, int[,]> piecePositions = new()
     {
         {
@@ -85,15 +89,22 @@ public class MyBot : IChessBot
             }
         },
     };
+#endif
+
     private ConcurrentDictionary<ulong, int> boardScoreTable = new();
     private Move moveToPlay;
     private int searchDepth = 6;
+    private bool playAsBlack = true,
+                 inEndGame = false;
 
     public Move Think(Board board, Timer timer)
     {
+        playAsBlack = !board.IsWhiteToMove;
         searchDepth = ChooseSearchDepth(board);
+        inEndGame = ReachedEndGame(board);
         moveToPlay = Move.NullMove;
-        int score = Search(board, -int.MaxValue, int.MaxValue, searchDepth);
+        Negamax(board, -int.MaxValue, int.MaxValue, searchDepth);
+        // Minimax(board, searchDepth - 1, int.MinValue, int.MaxValue, board.IsWhiteToMove, true);
         return moveToPlay;
     }
 
@@ -115,12 +126,36 @@ public class MyBot : IChessBot
         return nbPieces;
     }
 
+    private static bool ReachedEndGame(Board board)
+    {
+        int nbPieces = NbPiecesOnBoard(board);
+        if (nbPieces > 25)
+            return false;
+        if (nbPieces < 10)
+            return true;
+        PieceList whiteQueens = board.GetPieceList(PieceType.Queen, true);
+        PieceList blackQueens = board.GetPieceList(PieceType.Queen, false);
+        if (!whiteQueens.Any() && !blackQueens.Any())
+            return true;
+        return false;
+    }
+
     public int Evaluate(Board board)
     {
+        int score;
         ulong boardHash = board.ZobristKey;
         if (boardScoreTable.ContainsKey(boardHash))
-            return boardScoreTable[boardHash];
+            score = boardScoreTable[boardHash];
+        else
+        {
+            score = _Evaluate(board);
+            boardScoreTable[boardHash] = score;
+        }
+        return playAsBlack ? -score : score;
+    }
 
+    private int _Evaluate(Board board)
+    {
         if (board.IsDraw() || board.IsInStalemate())
             return 0;
         if (board.IsInCheckmate())
@@ -130,67 +165,130 @@ public class MyBot : IChessBot
         PieceList[] allPieces = board.GetAllPieceLists();
         foreach (PieceList pieces in allPieces) {
             int value = pieces.Count * pieceValues[(int)pieces.TypeOfPieceInList];
-            int[,] piecePositionValues = piecePositions[pieces.TypeOfPieceInList];
-            foreach (Piece piece in pieces)
+#if PIECE_POSITION_VALUES
+            if (!inEndGame)
             {
-                int positionValue = PiecePositionValue(piece);
-                //if (positionValue != 0)
-                //    Console.WriteLine("Pawn position bonus/malus: {0}", positionValue);
-                value += positionValue;
+                int[,] piecePositionValues = piecePositions[pieces.TypeOfPieceInList];
+                foreach (Piece piece in pieces)
+                {
+                    int positionValue = PiecePositionValue(piece);
+#if VERBOSE
+                if (positionValue != 0)
+                    Console.WriteLine("Pawn position bonus/malus: {0}", positionValue);
+#endif
+                    value += positionValue;
+                }
             }
-            boardValue += board.IsWhiteToMove == pieces.IsWhitePieceList ? value : -value;
+#endif
+            boardValue += pieces.IsWhitePieceList ? value : -value;
         }
 
-        boardScoreTable[boardHash] = boardValue;
         return boardValue;
     }
 
+#if PIECE_POSITION_VALUES
     private int PiecePositionValue(Piece piece)
     {
         int[,] values = piecePositions[piece.PieceType];
-        int pieceY = 7 - piece.Square.Index / 8;
+        int pieceY = piece.Square.Index / 8;
         int pieceX = piece.Square.Index % 8;
-        if (!piece.IsWhite)
-        {
+        if (piece.IsWhite)
             pieceY = 7 - pieceY;
-            pieceX = 7 - pieceX;
-        }
-        if (values[pieceY, pieceX] != 0)
-        {
-            //Console.WriteLine("Position Bonus: {0}", values[pieceY, pieceX]);
-        }
         return values[pieceY, pieceX];
     }
+#endif
 
-    int Search (Board board, int alpha, int beta, int depth) {
-        int bestScore = -int.MaxValue;
+    /// <summary>
+    /// NegaMax search
+    /// </summary>
+    /// <param name="board">Chess Board</param>
+    /// <param name="alpha">Alpha for alpha-beta pruning</param>
+    /// <param name="beta">Beta for alpha-beta pruning</param>
+    /// <param name="depth">Depth (inverted : starting with searchDepth)</param>
+    /// <returns>Evaluation of best move, starting from this board</returns>
+    int Negamax(Board board, int alpha, int beta, int depth) {
+        int color = board.IsWhiteToMove ? -1 : 1;
+        int value = -int.MaxValue;
+
+        if (depth == 0 || !board.GetLegalMoves().Any())
+        {
+            value = color * Evaluate(board);
+            if (board.IsInCheckmate())
+                value += color * depth * 100000;
+            return color * value;
+        }
+
         Move bestMove = Move.NullMove;
-
-        if (depth == 0) {
-            bestScore = Evaluate(board);
-            if (bestScore >= beta)
-                return bestScore;
-            alpha = Math.Max(alpha, bestScore);
-            return alpha;
-        }
-
         Move[] moves = board.GetLegalMoves();
-        for (int i = 0; i < moves.Length; ++i) {
-            board.MakeMove(moves[i]);
-            int score = -Search(board, -beta, -alpha, depth - 1);
-            board.UndoMove(moves[i]);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = moves[i];
-                alpha = Math.Max(alpha, score);
-                if (alpha >= beta)
-                    break;
+
+        foreach (Move move in moves) {
+            board.MakeMove(move);
+            int score = -Negamax(board, -beta, -alpha, depth - 1);
+            board.UndoMove(move);
+            if (score > value) {
+                value = score;
+#if VERBOSE
+                if (value > 5999000)
+                    Console.WriteLine("Chosing move for mate with a score of {0}", value);
+#endif
+                bestMove = move;
             }
+            alpha = Math.Max(alpha, value);
+            if (alpha >= beta /* || TimedOut() */ )
+                break;
         }
-        if (moves.Length == 0)
-            return board.IsInCheck() ? -pieceValues[6] + (searchDepth - depth) : 0;
         if (depth == searchDepth)
             moveToPlay = bestMove;
-        return bestScore;
+        return value;
     }
+
+    private int Minimax(Board board, int depth, int alpha, int beta, bool isMaximizing, bool isRoot)
+    {
+        if (depth == 0)
+            return Evaluate(board);
+
+        if (isMaximizing)
+        {
+            int maxEval = int.MinValue;
+            var legalMoves = board.GetLegalMoves();
+            foreach (var move in legalMoves)
+            {
+                board.MakeMove(move);
+                int eval = Minimax(board, depth - 1, alpha, beta, !isMaximizing, false);
+                board.UndoMove(move);
+                if (eval > maxEval)
+                {
+                    maxEval = eval;
+                    if (isRoot)
+                       moveToPlay = move;
+                }
+                alpha = Math.Max(alpha, eval);
+                if (beta <= alpha)
+                    break;
+            }
+            return maxEval;
+        }
+        else
+        {
+            int minEval = int.MaxValue;
+            var legalMoves = board.GetLegalMoves();
+            foreach (var move in legalMoves)
+            {
+                board.MakeMove(move);
+                int eval = Minimax(board, depth - 1, alpha, beta, !isMaximizing, false);
+                board.UndoMove(move);
+                if (eval < minEval)
+                {
+                    minEval = eval;
+                    if (isRoot)
+                        moveToPlay = move;
+                }
+                beta = Math.Min(beta, eval);
+                if (beta <= alpha)
+                    break;
+            }
+            return minEval;
+        }
+    }
+
 }
