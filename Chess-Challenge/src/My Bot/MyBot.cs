@@ -3,6 +3,7 @@ using System;
 using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Concurrent;
 
 public class MyBot : IChessBot
 {
@@ -12,96 +13,92 @@ public class MyBot : IChessBot
     {
         {
             PieceType.Pawn, new int[8,8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                {  0,  0,  0,  0,  0,  0,  0,  0, },
+                { 50, 50, 50, 50, 50, 50, 50, 50, },
+                { 10, 10, 20, 30, 30, 20, 10, 10, },
+                {  5,  5, 10, 25, 25, 10,  5,  5, },
+                {  0,  0,  0, 20, 20,  0,  0,  0, },
+                {  5, -5,-10,  0,  0,-10, -5,  5, },
+                {  5, 10, 10,-20,-20, 10, 10,  5, },
+                {  0,  0,  0,  0,  0,  0,  0,  0, },
             }
         },
         {
             PieceType.Knight, new int[8,8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { -50,-40,-30,-30,-30,-30,-40,-50, },
+                { -40,-20,  0,  0,  0,  0,-20,-40, },
+                { -30,  0, 10, 15, 15, 10,  0,-30, },
+                { -30,  5, 15, 20, 20, 15,  5,-30, },
+                { -30,  0, 15, 20, 20, 15,  0,-30, },
+                { -30,  5, 10, 15, 15, 10,  5,-30, },
+                { -40,-20,  0,  5,  5,  0,-20,-40, },
+                { -50,-40,-30,-30,-30,-30,-40,-50, },
             }
         },
         {
             PieceType.Bishop, new int[8,8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { -20,-10,-10,-10,-10,-10,-10,-20, },
+                { -10,  0,  0,  0,  0,  0,  0,-10, },
+                { -10,  0,  5, 10, 10,  5,  0,-10, },
+                { -10,  5,  5, 10, 10,  5,  5,-10, },
+                { -10,  0, 10, 10, 10, 10,  0,-10, },
+                { -10, 10, 10, 10, 10, 10, 10,-10, },
+                { -10,  5,  0,  0,  0,  0,  5,-10, },
+                { -20,-10,-10,-10,-10,-10,-10,-20, },
             }
         },
         {
             PieceType.Rook, new int[8,8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { -20, 0, 30, 0, 0, 30, 0, -20 },
+                {   0,  0,  0,  0,  0,  0,  0,  0, },
+                {   5, 10, 10, 10, 10, 10, 10,  5, },
+                {  -5,  0,  0,  0,  0,  0,  0, -5, },
+                {  -5,  0,  0,  0,  0,  0,  0, -5, },
+                {  -5,  0,  0,  0,  0,  0,  0, -5, },
+                {  -5,  0,  0,  0,  0,  0,  0, -5, },
+                {  -5,  0,  0,  0,  0,  0,  0, -5, },
+                {   0,  0,  0,  5,  5,  0,  0,  0, },
             }
         },
         {
             PieceType.Queen, new int[8,8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { -20,-10,-10, -5, -5,-10,-10,-20, },
+                { -10,  0,  0,  0,  0,  0,  0,-10, },
+                { -10,  0,  5,  5,  5,  5,  0,-10, },
+                {  -5,  0,  5,  5,  5,  5,  0, -5, },
+                {   0,  0,  5,  5,  5,  5,  0, -5, },
+                { -10,  5,  5,  5,  5,  5,  0,-10, },
+                { -10,  0,  5,  0,  0,  0,  0,-10, },
+                { -20,-10,-10, -5, -5,-10,-10,-20, },
             }
         },
         {
+            // this "shelter" table is not good for the end-game
             PieceType.King, new int[8,8] {
-                { -50, -50, -50, -50, -50, -50, -50, -50, },
-                { -40, -40, -40, -40, -40, -40, -40, -40, },
-                { -30, -30, -30, -30, -30, -30, -30, -30, },
-                { -20, -20, -20, -20, -20, -20, -20, -20, },    
-                { -10, -10, -10, -10, -10, -10, -10, -10, },
-                { -10, -10, -10, -10, -10, -10, -10, -10, },
-                { -10, -10, -10, -10, -10, -10, -10, -10, },
-                { 0, 0, 0, 0, 0, 0, 0, 0 },
+                { -30,-40,-40,-50,-50,-40,-40,-30, },
+                { -30,-40,-40,-50,-50,-40,-40,-30, },
+                { -30,-40,-40,-50,-50,-40,-40,-30, },
+                { -30,-40,-40,-50,-50,-40,-40,-30, },
+                { -20,-30,-30,-40,-40,-30,-30,-20, },
+                { -10,-20,-20,-20,-20,-20,-20,-10, },
+                {  20, 20,  0,  0,  0,  0, 20, 20, },
+                {  20, 30, 10,  0,  0, 10, 30, 20, },
             }
         },
     };
-
-    int searchDepth = 6;
-    bool isWhite = true;
-    bool isBlack = false;
-    Move moveToPlay;
+    private ConcurrentDictionary<ulong, int> boardScoreTable = new();
+    private Move moveToPlay;
+    private int searchDepth = 6;
 
     public Move Think(Board board, Timer timer)
     {
-        isBlack = board.IsWhiteToMove;
-        isWhite = !isBlack;
-
-        searchDepth = chooseSearchDepth(board);
+        searchDepth = ChooseSearchDepth(board);
         moveToPlay = Move.NullMove;
         int score = Search(board, -int.MaxValue, int.MaxValue, searchDepth);
         return moveToPlay;
     }
 
-    private int chooseSearchDepth(Board board) {
-        int nbPieces = nbPiecesOnBoard(board);
+    private int ChooseSearchDepth(Board board) {
+        int nbPieces = NbPiecesOnBoard(board);
         if (nbPieces > 20)
             return 4;
         if (nbPieces > 10)
@@ -110,7 +107,7 @@ public class MyBot : IChessBot
             return 6;
     }
 
-    private int nbPiecesOnBoard(Board board)
+    private static int NbPiecesOnBoard(Board board)
     {
         int nbPieces = 0;
         foreach (PieceList pieces in board.GetAllPieceLists())
@@ -120,10 +117,14 @@ public class MyBot : IChessBot
 
     public int Evaluate(Board board)
     {
+        ulong boardHash = board.ZobristKey;
+        if (boardScoreTable.ContainsKey(boardHash))
+            return boardScoreTable[boardHash];
+
         if (board.IsDraw() || board.IsInStalemate())
             return 0;
         if (board.IsInCheckmate())
-            return board.IsWhiteToMove ? int.MinValue : int.MaxValue;
+            return board.IsWhiteToMove ? -5999000 : 5999000;
 
         int boardValue = 0;
         PieceList[] allPieces = board.GetAllPieceLists();
@@ -132,17 +133,19 @@ public class MyBot : IChessBot
             int[,] piecePositionValues = piecePositions[pieces.TypeOfPieceInList];
             foreach (Piece piece in pieces)
             {
-                int positionValue = piecePositionValue(piece);
-                if (positionValue != 0)
-                    Console.WriteLine("Pawn position bonus/malus: {0}", positionValue);
+                int positionValue = PiecePositionValue(piece);
+                //if (positionValue != 0)
+                //    Console.WriteLine("Pawn position bonus/malus: {0}", positionValue);
                 value += positionValue;
             }
             boardValue += board.IsWhiteToMove == pieces.IsWhitePieceList ? value : -value;
         }
+
+        boardScoreTable[boardHash] = boardValue;
         return boardValue;
     }
 
-    private int piecePositionValue(Piece piece)
+    private int PiecePositionValue(Piece piece)
     {
         int[,] values = piecePositions[piece.PieceType];
         int pieceY = 7 - piece.Square.Index / 8;
@@ -154,17 +157,12 @@ public class MyBot : IChessBot
         }
         if (values[pieceY, pieceX] != 0)
         {
-            Console.WriteLine("Position Bonus: {0}", values[pieceY, pieceX]);
+            //Console.WriteLine("Position Bonus: {0}", values[pieceY, pieceX]);
         }
         return values[pieceY, pieceX];
     }
 
-    private int evalMove(Move move)
-    {
-        return 0;
-    }
-
-    int Search (Board board, int alpha, int beta, int depth){
+    int Search (Board board, int alpha, int beta, int depth) {
         int bestScore = -int.MaxValue;
         Move bestMove = Move.NullMove;
 
@@ -180,7 +178,6 @@ public class MyBot : IChessBot
         for (int i = 0; i < moves.Length; ++i) {
             board.MakeMove(moves[i]);
             int score = -Search(board, -beta, -alpha, depth - 1);
-            score += evalMove(moves[i]);
             board.UndoMove(moves[i]);
             if (score > bestScore) {
                 bestScore = score;
