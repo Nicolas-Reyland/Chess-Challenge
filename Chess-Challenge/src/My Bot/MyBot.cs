@@ -331,7 +331,7 @@ public class MyBot : IChessBot
         foreach (Move move in moves) {
             board.MakeMove(move);
 
-            // check for mate in one
+            // instantly chose move if mate in one
             if (isRoot && board.IsInCheckmate())
             {
                 moveToPlay = move;
