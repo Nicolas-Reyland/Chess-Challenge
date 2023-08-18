@@ -1,5 +1,5 @@
 #define PIECE_POSITION_VALUES
-//#define ADAPTATIVE_DEPTH
+#define ADAPTATIVE_DEPTH
 
 using ChessChallenge.API;
 using System;
@@ -94,9 +94,9 @@ public class MyBot : IChessBot
     {
         {
             PieceType.Pawn, new int[8, 8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 90, 90, 90, 90, 90, 90, 90, 90, },
+                { 70, 70, 70, 70, 70, 70, 70, 70, },
+                { 20, 20, 20, 20, 20, 20, 20, 20, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -106,26 +106,26 @@ public class MyBot : IChessBot
         },
         {
             PieceType.Knight, new int[8, 8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { -5,-5, -5, -5, -5, -5,-5, -5, },
+                { -5, 0,  0,  0,  0,  0, 0, -5, },
+                { -5, 0,  0, 10, 10,  0, 0, -5, },
+                { -5, 0, 10, 20, 20, 10, 0, -5, },
+                { -5, 0, 10, 20, 20, 10, 0, -5, },
+                { -5, 0,  0, 10, 10,  0, 0, -5, },
+                { -5, 0,  0,  0,  0,  0, 0, -5, },
+                { -5,-5, -5, -5, -5, -5,-5, -5, },
             }
         },
         {
             PieceType.Bishop, new int[8, 8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { -5,-5, -5, -5, -5, -5,-5, -5, },
+                { -5, 5,  0,  0,  0,  0, 5, -5, },
+                { -5, 0, 10, 10, 10, 10, 0, -5, },
+                { -5, 0, 10, 20, 20, 10, 0, -5, },
+                { -5, 0, 10, 20, 20, 10, 0, -5, },
+                { -5, 0, 10, 10, 10, 10, 0, -5, },
+                { -5, 5,  0,  0,  0,  0, 5, -5, },
+                { -5,-5, -5, -5, -5, -5,-5, -5, },
             }
         },
         {
@@ -137,7 +137,7 @@ public class MyBot : IChessBot
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { -15, 0, 0, 0, 0, 0, 0, -15, },
             }
         },
         {
@@ -214,6 +214,11 @@ public class MyBot : IChessBot
         return nbPieces;
     }
 
+    /// <summary>
+    /// Choses the middle or late game strategy. True means Late game. False means Middle game.
+    /// </summary>
+    /// <param name="board">Board to analyze</param>
+    /// <returns>Strategy</returns>
     private bool ChooseGameStrategy(Board board)
     {
         bool endGame = false;
@@ -326,6 +331,10 @@ public class MyBot : IChessBot
         }
 
         Move bestMove = Move.NullMove;
+        /*
+        Span<Move> moves = stackalloc Move[218];
+        board.GetLegalMovesNonAlloc(ref moves);
+        */
         Move[] moves = board.GetLegalMoves();
 
         foreach (Move move in moves) {
@@ -334,10 +343,15 @@ public class MyBot : IChessBot
             // instantly chose move if mate in one
             if (isRoot && board.IsInCheckmate())
             {
-                moveToPlay = move;
                 board.UndoMove(move);
+                moveToPlay = move;
                 return 0;
             }
+            /*
+            // don't even consider the move if it is represents a draw
+            if (isRoot && board.IsDraw())
+                continue;
+            */
 
             int score = -Negamax(board, -beta, -alpha, depth - 1);
             board.UndoMove(move);
