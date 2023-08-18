@@ -1,4 +1,5 @@
 #define PIECE_POSITION_VALUES
+//#define ADAPTATIVE_DEPTH
 
 using ChessChallenge.API;
 using System;
@@ -13,7 +14,7 @@ public class MyBot : IChessBot
     // Piece values: null, pawn, knight, bishop, rook, queen, king
     readonly int[] pieceValues = { 0, 100, 320, 330, 500, 900, 20000 };
 #if PIECE_POSITION_VALUES
-    readonly Dictionary<PieceType, int[,]> piecePositions = new()
+    readonly Dictionary<PieceType, int[,]> middleGamePiecePositions = new()
     {
         {
             PieceType.Pawn, new int[8,8] {
@@ -89,26 +90,110 @@ public class MyBot : IChessBot
             }
         },
     };
+    readonly Dictionary<PieceType, int[,]> endGamePiecePositions = new()
+    {
+        {
+            PieceType.Pawn, new int[8, 8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+            }
+        },
+        {
+            PieceType.Knight, new int[8, 8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+            }
+        },
+        {
+            PieceType.Bishop, new int[8, 8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+            }
+        },
+        {
+            PieceType.Rook, new int[8, 8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+            }
+        },
+        {
+            PieceType.Queen, new int[8, 8] {
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { 0, 0, 0, 0, 0, 0, 0, 0, },
+            }
+        },
+        {
+            PieceType.King, new int[8, 8] {
+                { -50,-40,-30,-20,-20,-30,-40,-50, },
+                { -30,-20,-10,  0,  0,-10,-20,-30, },
+                { -30,-10, 20, 30, 30, 20,-10,-30, },
+                { -30,-10, 30, 40, 40, 30,-10,-30, },
+                { -30,-10, 30, 40, 40, 30,-10,-30, },
+                { -30,-10, 20, 30, 30, 20,-10,-30, },
+                { -30,-30,  0,  0,  0,  0,-30,-30, },
+                { -50,-30,-30,-30,-30,-30,-30,-50, },
+            }
+        },
+    };
 #endif
 
     private ConcurrentDictionary<ulong, int> boardScoreTable = new();
     private Move moveToPlay;
     private int searchDepth = 6;
     private bool playAsBlack = true,
-                 inEndGame = false;
+                 inEndGame = false,
+                 stopThinking = false;
 
     public Move Think(Board board, Timer timer)
     {
+        // this variable is used when a mate in one is found, or when we just want to stop thinking
+        stopThinking = false;
+        // are we the black or white player ?
         playAsBlack = !board.IsWhiteToMove;
+        // adaptative search depth
         searchDepth = ChooseSearchDepth(board);
-        inEndGame = ReachedEndGame(board);
+        // game stage
+        inEndGame = ChooseGameStrategy(board);
+        // this will be set by the negamax function
         moveToPlay = Move.NullMove;
+        // search for the best move
         Negamax(board, -int.MaxValue, int.MaxValue, searchDepth);
         // Minimax(board, searchDepth - 1, int.MinValue, int.MaxValue, board.IsWhiteToMove, true);
         return moveToPlay;
     }
 
     private int ChooseSearchDepth(Board board) {
+#if ADAPTATIVE_DEPTH
         int nbPieces = NbPiecesOnBoard(board);
         if (nbPieces > 20)
             return 4;
@@ -116,6 +201,9 @@ public class MyBot : IChessBot
             return 5;
         else
             return 6;
+#else
+        return 4;
+#endif
     }
 
     private static int NbPiecesOnBoard(Board board)
@@ -126,19 +214,45 @@ public class MyBot : IChessBot
         return nbPieces;
     }
 
-    private static bool ReachedEndGame(Board board)
+    private bool ChooseGameStrategy(Board board)
     {
+        bool endGame = false;
         int nbPieces = NbPiecesOnBoard(board);
         if (nbPieces > 25)
-            return false;
+        {
+            endGame = false;
+            goto ReturnEndGame;
+        }
         if (nbPieces < 10)
-            return true;
+        {
+            endGame = true;
+            goto ReturnEndGame;
+        }
         PieceList whiteQueens = board.GetPieceList(PieceType.Queen, true);
         PieceList blackQueens = board.GetPieceList(PieceType.Queen, false);
         if (!whiteQueens.Any() && !blackQueens.Any())
-            return true;
-        return false;
+        {
+            endGame = true;
+            goto ReturnEndGame;
+        }
+
+        ReturnEndGame:
+        if (inEndGame != endGame)
+            Console.WriteLine("Changing strategy from {0} to {1}", inEndGame ? "EG" : "MG", endGame ? "EG" : "MG");
+        return endGame;
     }
+
+#if PIECE_POSITION_VALUES
+    private int PiecePositionValue(Piece piece, ref Dictionary<PieceType, int[,]> table)
+    {
+        int[,] values = table[piece.PieceType];
+        int pieceY = piece.Square.Index / 8;
+        int pieceX = piece.Square.Index % 8;
+        if (piece.IsWhite)
+            pieceY = 7 - pieceY;
+        return values[pieceY, pieceX];
+    }
+#endif
 
     public int Evaluate(Board board)
     {
@@ -156,28 +270,29 @@ public class MyBot : IChessBot
 
     private int _Evaluate(Board board)
     {
-        if (board.IsDraw() || board.IsInStalemate())
+        if (board.IsDraw())
             return 0;
         if (board.IsInCheckmate())
-            return board.IsWhiteToMove ? -5999000 : 5999000;
+            return board.IsWhiteToMove ? -99000 : 99000;
 
         int boardValue = 0;
         PieceList[] allPieces = board.GetAllPieceLists();
         foreach (PieceList pieces in allPieces) {
             int value = pieces.Count * pieceValues[(int)pieces.TypeOfPieceInList];
 #if PIECE_POSITION_VALUES
+            Dictionary<PieceType, int[,]> piecePositionTables;
             if (!inEndGame)
+                piecePositionTables = middleGamePiecePositions;
+            else
+                piecePositionTables = endGamePiecePositions;
+            foreach (Piece piece in pieces)
             {
-                int[,] piecePositionValues = piecePositions[pieces.TypeOfPieceInList];
-                foreach (Piece piece in pieces)
-                {
-                    int positionValue = PiecePositionValue(piece);
+                int positionValue = PiecePositionValue(piece, ref piecePositionTables);
 #if VERBOSE
                 if (positionValue != 0)
                     Console.WriteLine("Pawn position bonus/malus: {0}", positionValue);
 #endif
-                    value += positionValue;
-                }
+                value += positionValue;
             }
 #endif
             boardValue += pieces.IsWhitePieceList ? value : -value;
@@ -185,18 +300,6 @@ public class MyBot : IChessBot
 
         return boardValue;
     }
-
-#if PIECE_POSITION_VALUES
-    private int PiecePositionValue(Piece piece)
-    {
-        int[,] values = piecePositions[piece.PieceType];
-        int pieceY = piece.Square.Index / 8;
-        int pieceX = piece.Square.Index % 8;
-        if (piece.IsWhite)
-            pieceY = 7 - pieceY;
-        return values[pieceY, pieceX];
-    }
-#endif
 
     /// <summary>
     /// NegaMax search
@@ -207,8 +310,12 @@ public class MyBot : IChessBot
     /// <param name="depth">Depth (inverted : starting with searchDepth)</param>
     /// <returns>Evaluation of best move, starting from this board</returns>
     int Negamax(Board board, int alpha, int beta, int depth) {
+        if (stopThinking)
+            return 0;
+
         int color = board.IsWhiteToMove ? -1 : 1;
         int value = -int.MaxValue;
+        bool isRoot = depth == searchDepth;
 
         if (depth == 0 || !board.GetLegalMoves().Any())
         {
@@ -223,6 +330,15 @@ public class MyBot : IChessBot
 
         foreach (Move move in moves) {
             board.MakeMove(move);
+
+            // check for mate in one
+            if (isRoot && board.IsInCheckmate())
+            {
+                moveToPlay = move;
+                board.UndoMove(move);
+                return 0;
+            }
+
             int score = -Negamax(board, -beta, -alpha, depth - 1);
             board.UndoMove(move);
             if (score > value) {
