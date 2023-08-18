@@ -268,7 +268,6 @@ namespace ChessChallenge.Application
             int boardStartY = -squareSize * 4;
             const int spaceY = 35;
 
-
             Color textTopTargetCol = topTurnToMove ? activeTextCol : inactiveTextCol;
             Color textBottomTargetCol = bottomTurnToMove ? activeTextCol : inactiveTextCol;
 

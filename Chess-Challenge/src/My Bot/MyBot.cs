@@ -1,5 +1,5 @@
 #define PIECE_POSITION_VALUES
-#define ADAPTATIVE_DEPTH
+//#define ADAPTATIVE_DEPTH
 
 using ChessChallenge.API;
 using System;
@@ -54,14 +54,14 @@ public class MyBot : IChessBot
         },
         {
             PieceType.Rook, new int[8,8] {
-                {   0,  0,  0,  0,  0,  0,  0,  0, },
-                {   5, 10, 10, 10, 10, 10, 10,  5, },
-                {  -5,  0,  0,  0,  0,  0,  0, -5, },
-                {  -5,  0,  0,  0,  0,  0,  0, -5, },
-                {  -5,  0,  0,  0,  0,  0,  0, -5, },
-                {  -5,  0,  0,  0,  0,  0,  0, -5, },
-                {  -5,  0,  0,  0,  0,  0,  0, -5, },
-                {   0,  0,  0,  5,  5,  0,  0,  0, },
+                {   0, 0,  0,  0,  0,  0, 0,  0, },
+                {   5, 0, 10, 10, 10, 10, 0,  5, },
+                {  -5, 0, 10, 15, 15, 10, 0, -5, },
+                {  -5, 0, 10, 15, 15, 10, 0, -5, },
+                {  -5, 0, 10, 15, 15, 10, 0, -5, },
+                {  -5, 0, 10, 15, 15, 10, 0, -5, },
+                {  -5, 0, 10, 10, 10, 10, 0, -5, },
+                { -15, 0, 15, 10, 15,  0, 0,-15, },
             }
         },
         {
@@ -77,7 +77,6 @@ public class MyBot : IChessBot
             }
         },
         {
-            // this "shelter" table is not good for the end-game
             PieceType.King, new int[8,8] {
                 { -30,-40,-40,-50,-50,-40,-40,-30, },
                 { -30,-40,-40,-50,-50,-40,-40,-30, },
@@ -135,21 +134,21 @@ public class MyBot : IChessBot
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
                 { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { -15, 0, 0, 0, 0, 0, 0, -15, },
+                { -15, -5, -5, -5, -5, -5, -5, -15, },
+                { -15, -5, -5, -5, -5, -5, -5, -15, },
+                { -15, -5, -5, -5, -5, -5, -5, -15, },
             }
         },
         {
             PieceType.Queen, new int[8, 8] {
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
-                { 0, 0, 0, 0, 0, 0, 0, 0, },
+                { -9,  22,  22,  27,  27,  19,  10,  20, },
+                {-17,  20,  32,  41,  58,  25,  30,   0, },
+                {-20,   6,   9,  49,  47,  35,  19,   9, },
+                {  3,  22,  24,  45,  57,  40,  57,  36, },
+                {-18,  28,  19,  47,  31,  34,  39,  23, },
+                {-16, -27,  15,   6,   9,  17,  10,   5, },
+                {-22, -23, -30, -16, -16, -23, -36, -32, },
+                {-33, -28, -22, -43,  -5, -32, -20, -41, },
             }
         },
         {
@@ -198,7 +197,7 @@ public class MyBot : IChessBot
         if (nbPieces > 20)
             return 4;
         if (nbPieces > 10)
-            return 5;
+            return 4;
         else
             return 6;
 #else
@@ -270,6 +269,7 @@ public class MyBot : IChessBot
             score = _Evaluate(board);
             boardScoreTable[boardHash] = score;
         }
+        // return score;
         return playAsBlack ? -score : score;
     }
 
@@ -326,7 +326,7 @@ public class MyBot : IChessBot
         {
             value = color * Evaluate(board);
             if (board.IsInCheckmate())
-                value += color * depth * 100000;
+                value += color * depth * 10000;
             return color * value;
         }
 
@@ -349,11 +349,14 @@ public class MyBot : IChessBot
             }
             /*
             // don't even consider the move if it is represents a draw
-            if (isRoot && board.IsDraw())
+            if (isRoot && bestMove != Move.NullMove && board.IsDraw())
                 continue;
             */
 
             int score = -Negamax(board, -beta, -alpha, depth - 1);
+            if (move.IsCastles)
+                score += score < 0 ? -90 : 90;
+
             board.UndoMove(move);
             if (score > value) {
                 value = score;
@@ -420,5 +423,4 @@ public class MyBot : IChessBot
             return minEval;
         }
     }
-
 }
